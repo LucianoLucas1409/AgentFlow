@@ -160,23 +160,21 @@ O Agente Qualitor concentra os fluxos relacionados ao sistema de chamados. Ele i
 ### Consulta de chamados
 
 ```mermaid
-sequenceDiagram
-    participant U as Usuário
-    participant A as Agente Qualitor
-    participant P as Planejador
-    participant G as Governança
-    participant Q as Conector Qualitor
-    participant R as Resposta
+flowchart TD
+    A["Usuário pergunta sobre chamados"]
+    B["Agente identifica a intenção"]
+    C["Planejador cria o plano de consulta"]
+    D["Governança valida campos e limites"]
+    E{"Consulta permitida?"}
+    F["Conector consulta o Qualitor"]
+    G["Dados são normalizados"]
+    H["Agente resume e organiza"]
+    I["Usuário recebe a resposta"]
+    J["Agente solicita ajustes"]
 
-    U->>A: Pergunta sobre chamados
-    A->>P: Solicita plano estruturado
-    P-->>A: Filtro, parâmetros e modo de resposta
-    A->>G: Valida campos, período e limites
-    G->>Q: Executa consulta permitida
-    Q-->>G: Dados normalizados
-    G-->>A: Resultado e trilha da consulta
-    A->>R: Resume, agrupa ou analisa
-    R-->>U: Resposta + apresentação estruturada
+    A --> B --> C --> D --> E
+    E -->|Sim| F --> G --> H --> I
+    E -->|Não| J
 ```
 
 O sistema não aceita SQL livre produzido pelo modelo como autoridade. O planejador seleciona filtros e parâmetros; o backend monta e governa a consulta, aplica limites e registra sua execução.
@@ -234,6 +232,46 @@ O agente conversacional não troca senha, desbloqueia conta, altera grupos, move
 
 O AgentDesk é o subsistema responsável pela recuperação de conhecimento. Ele combina busca textual, keywords, embeddings, reescrita de consulta, reranking e feedback.
 
+### Fluxo completo do AgentDesk
+
+O AgentDesk possui dois momentos diferentes: a preparação do conhecimento e a busca realizada durante uma conversa. No fluxo de consulta, ele analisa a pergunta, pesquisa diferentes fontes, mede a confiança dos resultados e só utiliza conteúdos aprovados para montar a resposta.
+
+```mermaid
+flowchart TD
+    A["Usuário envia uma pergunta"] --> B["AgentDesk analisa a pergunta"]
+    B --> C["Extrai sistemas, erros, sintomas e termos importantes"]
+    C --> D["Reformula a consulta quando necessário"]
+
+    D --> E["Busca textual e por keywords"]
+    D --> F["Busca semântica com embeddings"]
+
+    E --> G["Combina e pontua os candidatos"]
+    F --> G
+
+    G --> H{"Confiança suficiente?"}
+
+    H -->|Não| I["Consulta ou hidrata fontes complementares"]
+    I --> G
+
+    H -->|Sim| J{"Resultados ainda estão ambíguos?"}
+    J -->|Sim| K["Reordena os candidatos por relevância"]
+    J -->|Não| L["Seleciona as melhores fontes"]
+    K --> L
+
+    L --> M["Aplica o filtro de evidências"]
+    M --> N{"Existe contexto confiável?"}
+
+    N -->|Não| O["Solicita mais detalhes ao usuário"]
+    N -->|Sim| P["Monta o contexto com as fontes aprovadas"]
+
+    P --> Q["Gera a resposta fundamentada"]
+    Q --> R["Adiciona referências e imagens aprovadas"]
+    R --> S["Registra fontes, duração e métricas"]
+    S --> T["Recebe o feedback do usuário"]
+    T --> U["Feedback influencia buscas futuras"]
+```
+
+O modelo de linguagem participa da interpretação, do reranking e da composição da resposta, mas não decide sozinho quais conteúdos são considerados confiáveis. A seleção final depende das regras e dos limites aplicados pela aplicação.
 ### Por que embeddings?
 
 Uma busca textual funciona bem quando pergunta e documento utilizam as mesmas palavras. Em suporte, isso nem sempre acontece: “terminal sem comunicação” e “equipamento offline” podem representar o mesmo problema sem compartilhar todos os termos.
@@ -242,7 +280,7 @@ Embeddings transformam textos em vetores numéricos. Textos semanticamente próx
 
 Embeddings não substituem a busca textual. Eles compõem uma busca híbrida porque códigos, mensagens de erro e nomes de sistemas costumam exigir correspondência lexical exata.
 
-### Indexação
+### Como o conteúdo é indexado
 
 ```mermaid
 flowchart LR
@@ -258,7 +296,7 @@ flowchart LR
 
 Os documentos são limpos e divididos em trechos menores para que a recuperação encontre a parte relevante, em vez de enviar artigos inteiros ao modelo. O índice mantém texto, keywords, vetor, origem, versão e metadados necessários para ranking e auditoria.
 
-### Recuperação
+### Como funciona o ranking híbrido
 
 ```mermaid
 flowchart TD
@@ -447,7 +485,7 @@ Os screenshots serão adicionados somente depois de uma revisão específica de 
 | Tendências | Dashboard com dados simulados | `assets/tendencias.png` |
 | Monitoramento | Live trace ou execução sanitizada | `assets/monitoramento.png` |
 
-Consulte [assets/README.md](assets/README.md) antes de adicionar as imagens.
+
 
 ## Aprendizados e próximos passos
 
